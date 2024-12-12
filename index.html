@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temperature Data</title>
+    <style>
+        /* Thêm các kiểu CSS để giao diện đẹp và dễ nhìn */
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f7f9fc;
+            color: #333;
+        }
+
+        header {
+            background-color: #2a9d8f;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 24px;
+            border-bottom: 2px solid #ddd;
+        }
+
+        #data {
+            margin-top: 20px;
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 12px 20px;
+            text-align: center;
+            border: 1px solid #ddd;
+            font-size: 16px;
+        }
+
+        th {
+            background-color: #2a9d8f;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        td {
+            background-color: #f4f4f4;
+        }
+
+        td:nth-child(2) {
+            font-weight: bold;
+            color: #2a9d8f; /* Đổi màu nhiệt độ */
+        }
+
+        td:first-child {
+            font-style: italic;
+            color: #555;
+        }
+
+        .temperature-cell {
+            font-size: 18px;
+            color: #2a9d8f;
+            font-weight: bold;
+        }
+
+        .temperature-unit {
+            font-size: 14px;
+            color: #666;
+            font-weight: normal;
+        }
+
+        .no-data-message {
+            text-align: center;
+            font-size: 18px;
+            color: #ff6b6b;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    Temperature Data from InfluxDB
+</header>
+
+<div id="data">
+    <!-- Dữ liệu sẽ được hiển thị ở đây -->
+</div>
+
+<script>
+    // Hàm định dạng lại ngày tháng
+    function formatDate(dateStr) {
+        const date = new Date(dateStr);
+        return date.toISOString().slice(0, 19).replace('T', ' '); // Định dạng thành YYYY-MM-DD HH:mm:ss
+    }
+
+    // Fetch dữ liệu từ backend
+    fetch('http://20.123.52.71/api/v1/get-data')
+        .then(response => response.json())  // Chuyển đổi dữ liệu sang định dạng JSON
+        .then(data => {
+            const container = document.getElementById('data');
+
+            // Kiểm tra xem dữ liệu có rỗng không
+            if (data.length === 0) {
+                container.innerHTML = '<p class="no-data-message">No data found.</p>';
+            } else {
+                // Tạo bảng để hiển thị dữ liệu
+                const table = document.createElement('table');
+                const headerRow = document.createElement('tr');
+                const headers = ['_time', 'Temperature'];  // Bỏ cột _start và _stop
+
+                // Thêm tiêu đề bảng
+                headers.forEach(header => {
+                    const th = document.createElement('th');
+                    th.textContent = header;
+                    headerRow.appendChild(th);
+                });
+                table.appendChild(headerRow);
+
+                // Thêm dữ liệu vào bảng
+                data.forEach(item => {
+                    const row = document.createElement('tr');
+
+                    // Chỉ hiển thị các trường cần thiết
+                    const fields = ['_time', '_value'];  // Bỏ _start và _stop, chỉ giữ lại _time và _value
+                    fields.forEach((field, index) => {
+                        const td = document.createElement('td');
+                        if (field === '_value') {
+                            td.classList.add('temperature-cell');
+                            td.textContent = item[field] || 'N/A';  // Đổi _value thành temperature
+                            td.innerHTML += '<span class="temperature-unit"> °C</span>';  // Thêm đơn vị °C
+                        } else if (field === '_time') {
+                            td.textContent = formatDate(item[field]) || 'N/A';  // Định dạng ngày tháng
+                        } else {
+                            td.textContent = item[field] || 'N/A';  // Các trường khác
+                        }
+                        row.appendChild(td);
+                    });
+
+                    table.appendChild(row);
+                });
+
+                // Thêm bảng vào trang
+                container.appendChild(table);
+            }
+        })
+        .catch(err => {
+            console.error('Error fetching data:', err);
+            document.getElementById('data').innerHTML = '<p class="no-data-message">Failed to load data.</p>';
+        });
+</script>
+
+</body>
+</html>
